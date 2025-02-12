@@ -158,8 +158,9 @@ def indent_wrap(text, width=120, indent=4):
 
 def query_text_3(text):
     embeddings = texts_2_embeddings([text])
-
     document_ids = []
+
+    results = []
 
     # Search for the initial matching chunks
     primary_results = chroma_collection.query(
@@ -185,6 +186,14 @@ def query_text_3(text):
         print(f"[{yellow(chunk_id)}] {green(dist)}")
         print(f"{item['text']}")
 
+        result = {
+            "document_id": document_id,
+            "chunk_id": chunk_id,
+            "filename": item["filename"],
+            "related": []
+        }
+
+
         # Get any other embeddings in the matched document that is not the chunk itself
         match_doc_embeddings = chroma_collection.get(
             where = {
@@ -205,7 +214,7 @@ def query_text_3(text):
         # Search for neighbours
         secondary_results = chroma_collection.query(
             query_embeddings = embeddings,
-            n_results = 2,
+            n_results = 4,
             where  = {
                 "document_id": {
                     "$nin": document_ids
@@ -227,7 +236,16 @@ def query_text_3(text):
             indent_wrap(f"[{yellow(chunk_id)}] {green(dist)}")
             indent_wrap(f"{item['text']}")
 
+            result["related"].append({
+                "document_id": document_id,
+                "chunk_id": chunk_id,
+                "filename": item["filename"]
+            })
+
+        results.append(result)
+
         print("")
+        print(results)
         print("")
 
 
