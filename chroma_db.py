@@ -125,10 +125,12 @@ def index_text(text, metadata):
         metadatas.append({
             "document_id": document_id,
             "chunk_id": hash_hex,
+            "chunk_no": idx,
             "document_topics": document_topics,
             "part": idx,
             "text": text_chunk,
-            **metadata
+            # has filename
+            **metadata 
         })
     print(f"Number of paragraphs = {len(paragraphs)}")
     
@@ -155,7 +157,6 @@ def indent_wrap(text, width=120, indent=4):
     print(wrapped_text)
 
 
-
 def query_text_3(text):
     embeddings = texts_2_embeddings([text])
     document_ids = []
@@ -163,32 +164,58 @@ def query_text_3(text):
     results = []
 
     # Search for the initial matching chunks
-    primary_results = chroma_collection.query(
+    raw_results = chroma_collection.query(
         query_embeddings = [ embeddings[0].embedding ],
         n_results = NUM_RESULTS,
     )
 
+
+    initial_results = []
+    processed_documents = []
+
     # Collect documents
-    results_len = len(primary_results["ids"][0])
+    results_len = len(raw_results["ids"][0])
+    print(f">> raw length {results_len}")
+
     for idx in range(results_len):
-        item = primary_results["metadatas"][0][idx]
-        document_ids.append(item['document_id']) 
+        chunk_id = raw_results["ids"][0][idx]
+        dist = raw_results["distances"][0][idx]
+        metadata = raw_results["metadatas"][0][idx]
+
+        document_id = metadata["document_id"]
+        chunk_no = metadata["chunk_no"]
+        text = metadata["text"]
+        filename = metadata["filename"]
+
+        if document_id in processed_documents:
+            continue
+
+        initial_results.append({
+            "document_id": document_id,
+            "filename": filename,
+            "chunk_id": chunk_id,
+            "chunk_no": chunk_no,
+            "dist": dist,
+            "text": text
+        })
+
+        processed_documents.append(document_id);
+        document_ids.append(document_id);
 
 
     # Do a secondary search
-    for idx in range(results_len):
-        item = primary_results["metadatas"][0][idx]
-        document_id = item["document_id"] 
-        chunk_id = primary_results["ids"][0][idx]
-        dist = primary_results["distances"][0][idx]
+    l = len(initial_results)
+    print(f">> filetered length {l}")
 
-        # print(f"Document: {document_id}") 
-        print(f"[{yellow(chunk_id)}] {green(dist)}")
+    for idx in range(l):
+        item = initial_results[idx]
+
+        print(f"[{yellow(item['filename'])}:{yellow(item['chunk_no'])}] {green(item['dist'])}")
         print(f"{item['text']}")
 
         result = {
-            "document_id": document_id,
-            "chunk_id": chunk_id,
+            "document_id": item["document_id"],
+            "chunk_id": item["chunk_id"],
             "filename": item["filename"],
             "related": []
         }
@@ -198,8 +225,8 @@ def query_text_3(text):
         match_doc_embeddings = chroma_collection.get(
             where = {
                 "$and": [
-                    { "document_id": { "$in" : [document_id] } },
-                    { "chunk_id": { "$ne": chunk_id } }
+                    { "document_id": { "$in" : [item["document_id"]] } },
+                    { "chunk_id": { "$ne": item["chunk_id"] } }
                 ]
             },
             include=["embeddings"]
@@ -212,7 +239,7 @@ def query_text_3(text):
             continue
 
         # Search for neighbours
-        secondary_results = chroma_collection.query(
+        raw_results = chroma_collection.query(
             query_embeddings = embeddings,
             n_results = 4,
             where  = {
@@ -221,32 +248,53 @@ def query_text_3(text):
                 }
             }
         )
+        secondary_results = []
 
         # Collect relevant matches
-        relevant_results_len = len(secondary_results["ids"][0])
+        relevant_results_len = len(raw_results["ids"][0])
         relevant_document_ids = []
         for idx in range(relevant_results_len):
-            item = secondary_results["metadatas"][0][idx]
-            document_id = item["document_id"] 
-            chunk_id = secondary_results["ids"][0][idx]
-            dist = secondary_results["distances"][0][idx]
+            chunk_id = raw_results["ids"][0][idx]
+            dist = raw_results["distances"][0][idx]
 
-            relevant_document_ids.append(item['document_id']) 
-            # indent_wrap(f"Document: {document_id}") 
-            indent_wrap(f"[{yellow(chunk_id)}] {green(dist)}")
-            indent_wrap(f"{item['text']}")
+            metadata = raw_results["metadatas"][0][idx]
+            document_id = metadata["document_id"] 
+            filename = metadata["filename"]
+            chunk_no = metadata["chunk_no"]
+            text = metadata["text"]
+
+            secondary_results.append({
+                "document_id": document_id,
+                "filename": filename,
+                "chunk_id": chunk_id,
+                "chunk_no": chunk_no,
+                "dist": dist,
+                "text": text
+            })
+
+            relevant_document_ids.append(document_id)
+            # indent_wrap(f"[{yellow(filename)}:{yellow(chunk_no)}] {green(dist)}")
+            # indent_wrap(f"{text}")
 
             result["related"].append({
                 "document_id": document_id,
                 "chunk_id": chunk_id,
-                "filename": item["filename"]
+                "filename": filename
             })
 
         results.append(result)
 
-        print("")
-        print(results)
-        print("")
+        # Sort secondary
+        secondary_results.sort(key=lambda x: x["filename"] + str(x["chunk_no"]))
+        for idx in range(len(secondary_results)):
+            item = secondary_results[idx]
+
+            indent_wrap(f"[{yellow(item['filename'])}:{yellow(item['chunk_no'])}] {green(item['dist'])}")
+            indent_wrap(f"{item['text']}")
+
+        # print("")
+        # print(results)
+        # print("")
 
 
 def stats():
