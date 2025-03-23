@@ -68,6 +68,7 @@ Extract up to 5 topics associated with the text, return it as a comma delimited 
     # topics = response.choices[0].message.content.split(",")
     # return list(map(lambda x: x.strip(), topics))
 
+
 def texts_2_embeddings(text_list):
     model_name = "text-embedding-3-small"
     response = openai_client.embeddings.create(
@@ -95,14 +96,16 @@ def get_embedding(id):
 def yellow(s):
     return "\033[93m" + str(s) + "\033[0m"
 
+
 def green(s):
     return "\033[92m" + str(s) + "\033[0m"
+
 
 # See
 # - https://stackoverflow.com/questions/78589963/insert-thousands-of-documents-into-a-chroma-db
 def index_text(text, metadata):
     document_id = str(uuid.uuid4())
-    if metadata == None:
+    if metadata is None:
         metadata = {}
 
     # Get topics
@@ -133,9 +136,9 @@ def index_text(text, metadata):
             **metadata 
         })
     print(f"Number of paragraphs = {len(paragraphs)}")
-    
+
     embedding_data = texts_2_embeddings(paragraphs)
-    embeddings = list(map(lambda x: x.embedding, embedding_data)) #embedding_data[0].embedding
+    embeddings = list(map(lambda x: x.embedding, embedding_data))  # embedding_data[0].embedding
 
     # Do upsert so we can re-index
     print(f">>> {chunk_ids}")
@@ -165,7 +168,7 @@ def query_text_3(text):
 
     # Search for the initial matching chunks
     raw_results = chroma_collection.query(
-        query_embeddings = [ embeddings[0].embedding ],
+        query_embeddings = [embeddings[0].embedding],
         n_results = NUM_RESULTS,
     )
 
@@ -199,8 +202,8 @@ def query_text_3(text):
             "text": text
         })
 
-        processed_documents.append(document_id);
-        document_ids.append(document_id);
+        processed_documents.append(document_id)
+        document_ids.append(document_id)
 
 
     # Do a secondary search
@@ -225,7 +228,7 @@ def query_text_3(text):
         match_doc_embeddings = chroma_collection.get(
             where = {
                 "$and": [
-                    { "document_id": { "$in" : [item["document_id"]] } },
+                    { "document_id": { "$in": [item["document_id"]] } },
                     { "chunk_id": { "$ne": item["chunk_id"] } }
                 ]
             },
@@ -242,7 +245,7 @@ def query_text_3(text):
         raw_results = chroma_collection.query(
             query_embeddings = embeddings,
             n_results = 4,
-            where  = {
+            where = {
                 "document_id": {
                     "$nin": document_ids
                 }
@@ -258,7 +261,7 @@ def query_text_3(text):
             dist = raw_results["distances"][0][idx]
 
             metadata = raw_results["metadatas"][0][idx]
-            document_id = metadata["document_id"] 
+            document_id = metadata["document_id"]
             filename = metadata["filename"]
             chunk_no = metadata["chunk_no"]
             text = metadata["text"]
@@ -309,7 +312,7 @@ def stats():
 
 
 ################################################################################
-## main
+# main
 ################################################################################
 args = sys.argv
 if len(args) < 2:
@@ -328,15 +331,14 @@ if command == "add":
     file = args[2]
     print(f"Indexing ... {file}")
     text = read_file(file)
-    index_text(text, { "filename": file })
+    index_text(text, { "filename": file } )
 elif command == "query":
     text = args[2]
-    print(f"Querying ... ")
+    print("Querying ... ")
     query_text_3(text)
 elif command == "clear":
-    print(f"Deleting collection ... ")
+    print("Deleting collection ... ")
     chroma_client.delete_collection(name=collection_name)
 else:
-    print(f"Finding statistics")
+    print("Finding statistics")
     stats()
-
