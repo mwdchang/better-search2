@@ -38,6 +38,7 @@ openai_client = OpenAI(
     api_key=token,
 )
 
+
 def text_2_topics(text):
     model_name = "gpt-4o-mini"
     prompt = f"""
@@ -52,7 +53,7 @@ Extract up to 5 topics associated with the text, return it as a comma delimited 
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful assistant with expertise in a large array of topics with expertize in information retrieval", 
+                "content": "You are a helpful assistant with expertise in a large array of topics with expertize in information retrieval"
             },
             {
                 "role": "user",
@@ -133,7 +134,7 @@ def index_text(text, metadata):
             "part": idx,
             "text": text_chunk,
             # has filename
-            **metadata 
+            **metadata
         })
     print(f"Number of paragraphs = {len(paragraphs)}")
 
@@ -300,6 +301,65 @@ def query_text_3(text):
         # print("")
 
 
+def rag(text):
+    embedding_data = texts_2_embeddings([text])
+    embeddings = list(map(lambda x: x.embedding, embedding_data))
+
+    raw_results = chroma_collection.query(
+        query_embeddings = embeddings,
+        n_results = 4
+    )
+
+    results_len = len(raw_results["ids"][0])
+    str_buffer = ""
+    sources = []
+    for idx in range(results_len):
+        metadata = raw_results["metadatas"][0][idx]
+        # print(metadata["text"])
+        str_buffer = str_buffer + metadata["text"]
+        str_buffer = str_buffer + "\n"
+
+        chunk_no = metadata["chunk_no"]
+        filename = metadata["filename"]
+
+        sources.append(f"{filename} / {chunk_no} ")
+
+    prompt = f"""
+    Use the following statements/text to answer the question:
+
+    {str_buffer}
+
+    The question is:
+
+    {text}
+
+    if you do not know the anwer, return "I don't know the answer.".
+    """
+
+    model_name = "gpt-4o-mini"
+    response = openai_client.chat.completions.create(
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant with expertise in a large array of topics with expertize in information retrieval", 
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature = 1.0,
+        top_p = 1.0,
+        max_tokens = 1000,
+        model = model_name
+    )
+
+    answer = response.choices[0].message.content
+    print(f"The answer is:\n\n {answer}")
+    print(f"Sources {sources}")
+
+
+
 def stats():
     collections = chroma_client.list_collections()
 
@@ -310,17 +370,18 @@ def stats():
         print(f"Collection '{name}' has {size} items.")
 
 
-
 ################################################################################
 # main
 ################################################################################
 args = sys.argv
+
 if len(args) < 2:
     print("""
 Usage:
     python chroma_db.py clear
     python chroma_db.py add <filepath>
     python chroma_db.py query <querystring>
+    python chroma_db.py rag <querystring>
     python chroma_db.py stats
     """)
     exit(-1)
@@ -336,6 +397,10 @@ elif command == "query":
     text = args[2]
     print("Querying ... ")
     query_text_3(text)
+elif command == "rag":
+    text = args[2]
+    print("RAG query...")
+    rag(text)
 elif command == "clear":
     print("Deleting collection ... ")
     chroma_client.delete_collection(name=collection_name)
