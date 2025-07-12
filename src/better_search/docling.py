@@ -55,11 +55,10 @@ class DoclingExtractor(DocumentExtractor):
 
         return formatted_texts
 
- 
 
 if __name__ == "__main__":
     pdf_extractor = DoclingExtractor()
-    texts = pdf_extractor.extract("/Users/dchang/health-messenger/pdfs/jmir-2022-8-e38015.pdf", None)
+    texts = pdf_extractor.extract("/Users/dchang/workspace/better-search2/2406.02030v2.pdf", {})
     for text in texts:
         print(text)
         print("===============")
