@@ -23,6 +23,21 @@ class ChromaDB:
             metadata={"hnsw:space": "cosine"}
         )
 
+
+    def delete_collection(self, collection_name: str):
+        self.client.delete_collection(name=collection_name)
+
+
+    def get_collections(self):
+        result = {}
+        collections = self.client.list_collections()
+        for col in collections:
+            collection = self.client.get_collection(name=col.name)
+            count = collection.count()
+            result[col.name] = count
+        return result
+
+
     def add_document_embedding(self, id: str, embedding: List[float], metadata: Dict = None):
         self.delete(id)
         self.collection.add(

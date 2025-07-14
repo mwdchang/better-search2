@@ -1,13 +1,13 @@
 ## Better Search 2
-Provides search and question/answer capabilities.
+Provides search and question/answer capabilities over documents.
 
-The general idea is this: Sometimes I don't exactly remember what I am looking for, but I know whatever it is had been mentioned near a specific event that I _do_ remember, say event-X. So we can instead search for event-X, then try to construct topical thread by examining surrounding text around event-X and reconstruct story threads from the indexed corpus.
+This project was originally developed as a way to search and extract sibling threads from documents based on semantic similarities. Imagine a paragraph that mentions topic X and topic Y, when the paragraph is retrieved, it not only shows topic X but also pulls out relevant information about topic Y across the entire collection.
 
+In practice, this is useful for cue-based recalls and associative memory triggers. For example:
+- There is something important on day X, but I can't remember what it was.
+- The authors made a few interesting points in their literature review; I can't recall what they are.
 
-To give a concrete example: Say we are trying to recall a conversation about ElasticSearch queries, but this is difficult to find because there are a lot of conversations about ES already. But if we remember there was also a conversation about a very specific server error nearby, we can use the server-error as an anchor point, and reconstruct the nearby threads, one of which will be the ES queries we are looking for.
- 
-
-This also provides a basic RAG question and answer capability for kicks and giggles.
+In spirit this is not unlike various RAG/GraphRAG techniques that aimed to expose relationships within the corpus. So the scope of the project has expanded to incorporate and to cover general QA techniques as well.
 
 
 ### Setup

@@ -9,7 +9,7 @@ class AIClient:
         )
 
     def get_embeddings(self, texts:List[str]):
-        model_name = "text-embedding-3-small"
+        model_name = "openai/text-embedding-3-small"
         response = self.client.embeddings.create(
             input = texts,
             model=model_name,
