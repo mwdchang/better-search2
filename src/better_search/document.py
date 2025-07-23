@@ -31,9 +31,11 @@ class DocumentExtractor:
 
     def extract(self, filepath: str, metadata: Dict):
         _, extension = os.path.splitext(filepath)
-        if extension.lower() == "pdf":
+        if extension.lower() == ".pdf":
+            print("Extracting PDF...this may take a minute or two")
             return self.extract_pdf(filepath, metadata)
         else:
+            print("Extracting text")
             return self.extract_plain(filepath, metadata)
 
 
@@ -120,9 +122,9 @@ class DocumentExtractor:
 
 
 if __name__ == "__main__":
-    pdf_extractor = DoclingExtractor()
-    texts = pdf_extractor.extract("/Users/dchang/workspace/better-search2/2406.02030v2.pdf", {})
-    for text in texts:
-        print(text)
+    extractor = DocumentExtractor()
+    chunks, metadatas, chunk_ids = extractor.extract("/Users/dchang/workspace/better-search2/2406.02030v2.pdf", {})
+    for metadata in metadatas:
+        print(metadata)
         print("===============")
 
